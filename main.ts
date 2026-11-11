@@ -221,7 +221,8 @@ export default class SmartTypography extends Plugin {
 
             // Grab and cache three chars before the one being inserted
             if (contextCache[fromA] === undefined) {
-              contextCache[fromA] = tr.newDoc.sliceString(fromB - 3, fromB);
+              const startPos = Math.max(0, fromB - 3);
+              contextCache[fromA] = tr.newDoc.sliceString(startPos, fromB);
             }
 
             const context = contextCache[fromA];
@@ -235,6 +236,9 @@ export default class SmartTypography extends Plugin {
             const replacementLength = rule.from.length - rule.trigger.length;
             const insertionPoint = fromA - replacementLength;
             const reversionPoint = fromB - replacementLength;
+            if (insertionPoint < 0 || reversionPoint < 0) {
+              continue;
+            }
 
             registerChange(
               {
@@ -303,7 +307,7 @@ export default class SmartTypography extends Plugin {
     instance: CodeMirror.Editor,
     delta: CodeMirror.EditorChangeCancellable
   ) => {
-    if (this.legacyLastUpdate.has(instance) && delta.origin === "+delete") {
+    if (this.legacyLastUpdate?.has(instance) && delta.origin === "+delete") {
       const revert = this.legacyLastUpdate.get(instance).performRevert;
 
       if (revert) {
@@ -477,7 +481,7 @@ class SmartTypographySettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Dashes")
       .setDesc(
-        "Two dashes (--) will be converted to an en-dash (–). And en-dash followed by a dash will be converted to and em-dash (—). An em-dash followed by a dash will be converted into three dashes (---)"
+        "Two dashes (--) will be converted to an en-dash (\u2013). And en-dash followed by a dash will be converted to an em-dash (\u2014). An em-dash followed by a dash will be converted into three dashes (---)"
       )
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.emDash).onChange(async (value) => {
